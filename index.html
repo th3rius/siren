@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>ChordPro Viewer</title>
+<style>
+:root {
+  --text:       #37352f;
+  --muted:      rgba(55, 53, 47, 0.55);
+  --border:     rgba(55, 53, 47, 0.09);
+  --border-md:  rgba(55, 53, 47, 0.18);
+  --surface:    rgba(55, 53, 47, 0.04);
+  --chord:      #c04b24;
+  --chorus:     #2c6ea6;
+  --bridge:     #6b4a9a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text:      #cfcfcd;
+    --muted:     rgba(207, 207, 205, 0.5);
+    --border:    rgba(255, 255, 255, 0.08);
+    --border-md: rgba(255, 255, 255, 0.15);
+    --surface:   rgba(255, 255, 255, 0.04);
+    --chord:     #e0744a;
+    --chorus:    #5a9fd4;
+    --bridge:    #a880d8;
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: transparent;
+  color: var(--text);
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  gap: 5px;
+  padding: 8px 12px 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.ctl {
+  padding: 2px 9px;
+  font-size: 12px;
+  border: 1px solid var(--border-md);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 4px;
+  font-family: inherit;
+  transition: color 0.1s, border-color 0.1s;
+  line-height: 1.7;
+}
+.ctl:hover { color: var(--text); border-color: var(--border-md); background: var(--surface); }
+.ctl.hi { color: var(--chord); border-color: var(--chord); }
+.ctl.hi:hover { opacity: 0.8; background: transparent; }
+.fb { font-size: 11px; color: var(--muted); margin-left: 4px; opacity: 0; transition: opacity 0.15s; }
+.fb.on { opacity: 1; }
+
+/* Editor */
+.editor { display: none; padding: 0 12px 10px; }
+.editor.open { display: block; }
+.editor textarea {
+  width: 100%; height: 180px;
+  font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+  font-size: 13px; line-height: 1.55;
+  padding: 8px 10px;
+  border: 1px solid var(--border-md);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  resize: vertical; outline: none;
+}
+.editor textarea:focus { border-color: var(--chord); }
+
+/* Song */
+.song { padding: 0.25rem 2.5rem 3rem; max-width: 860px; }
+
+.song-title { font-size: 2.2rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 3px; }
+.song-artist { font-size: 1rem; color: var(--muted); margin-bottom: 2px; }
+.song-meta {
+  display: flex; gap: 10px;
+  font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  margin-bottom: 1.75rem; margin-top: 4px;
+}
+
+/* Diagrams */
+.diagrams {
+  display: flex; flex-wrap: wrap; gap: 1rem 1.3rem;
+  margin-bottom: 1.75rem;
+  padding: 1rem 1.2rem;
+  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.di { color: var(--text); }
+
+/* Sections */
+.section { margin-bottom: 1.4rem; }
+.sec-label {
+  font-size: 11px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted); margin-bottom: 0.4rem;
+}
+.sec-label.chorus { color: var(--chorus); }
+.sec-label.bridge { color: var(--bridge); }
+
+/* Lines */
+.line { display: flex; flex-wrap: wrap; align-items: flex-end; min-height: 2.4rem; margin-bottom: 1px; }
+.seg { display: inline-flex; flex-direction: column; white-space: pre; }
+.seg-c {
+  font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+  font-size: 12px; font-weight: 600;
+  color: var(--chord); line-height: 1;
+  padding-bottom: 3px; min-height: 1em;
+  letter-spacing: 0.02em;
+}
+.seg-c.cho { color: var(--chorus); }
+.seg-c.bri { color: var(--bridge); }
+.seg-l { font-size: 1rem; color: var(--text); line-height: 1.4; }
+
+.comment { font-size: 0.85rem; color: var(--muted); font-style: italic; margin: 2px 0; }
+.tab {
+  font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+  font-size: 12.5px; line-height: 1.9;
+  padding: 0.5rem 0.75rem;
+  border-left: 2px solid var(--border-md);
+  white-space: pre; overflow-x: auto; color: var(--text);
+}
+.sp { height: 0.3rem; }
+
+/* Empty */
+.empty { padding: 2.5rem 2.5rem; color: var(--muted); font-size: 0.9rem; line-height: 1.8; }
+.empty strong { color: var(--text); }
+.empty code {
+  font-family: ui-monospace, monospace; font-size: 0.85em;
+  background: var(--surface); border: 1px solid var(--border-md);
+  border-radius: 3px; padding: 0 4px;
+}
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <button class="ctl" id="edbtn" onclick="toggleEditor()">Editar</button>
+  <button class="ctl" onclick="copyRaw()">Copiar ChordPro</button>
+  <button class="ctl hi" onclick="copyURL()">Copiar URL</button>
+  <span class="fb" id="fb"></span>
+</div>
+
+<div class="editor" id="editor">
+  <textarea id="ta" placeholder="Cole seu ChordPro aqui..." oninput="onInput()"></textarea>
+</div>
+
+<div id="view"></div>
+
+<script>
+const DEMO = `{title: Wish You Were Here}
+{artist: Pink Floyd}
+{key: Em}
+
+{define: Em base-fret 1 frets 0 2 2 0 0 0 fingers - 2 3 - - -}
+{define: G base-fret 1 frets 3 2 0 0 0 3 fingers 2 1 - - - 4}
+{define: Am base-fret 1 frets x 0 2 2 1 0 fingers - - 2 3 1 -}
+{define: D base-fret 1 frets x x 0 2 3 2 fingers - - - 1 3 2}
+{define: C base-fret 1 frets x 3 2 0 1 0 fingers - 3 2 - 1 -}
+
+{start_of_verse}
+[Em]So, so you think you can [G]tell
+[Am]Heaven from Hell, [D]blue skies from [C]pain
+[G]Can you tell a green [D]field from a cold steel [Am]rail?
+A [C]smile from a veil? [D]Do you think you can [G]tell?
+{end_of_verse}
+
+{start_of_chorus}
+[C]How I wish, how I [G]wish you were [D]here
+We're just [Am]two lost souls swimming in a fish[C]bowl
+Year after [G]year
+[D]Running over the same old [Am]ground
+What have we [C]found? The same old [G]fears
+Wish you were [D]here
+{end_of_chorus}`;
+
+function parseDefine(val) {
+  const parts = val.trim().split(/\s+/);
+  const d = { name: parts[0], baseFret: 1, frets: [], fingers: [] };
+  let i = 1;
+  while (i < parts.length) {
+    if (parts[i] === 'base-fret') { d.baseFret = parseInt(parts[++i]) || 1; i++; }
+    else if (parts[i] === 'frets') {
+      i++;
+      while (i < parts.length && parts[i] !== 'fingers') {
+        const v = parts[i].toLowerCase();
+        d.frets.push(v === 'x' ? -1 : (parseInt(v) || 0));
+        i++;
+      }
+    }
+    else if (parts[i] === 'fingers') {
+      i++;
+      while (i < parts.length) { d.fingers.push(parts[i] === '-' ? 0 : (parseInt(parts[i]) || 0)); i++; }
+    }
+    else i++;
+  }
+  return d;
+}
+
+function parseLine(line) {
+  const segs = [];
+  const re = /\[([^\]]+)\]/g;
+  let li = 0, m, pending = null;
+  while ((m = re.exec(line)) !== null) {
+    const txt = line.slice(li, m.index);
+    if (pending !== null || txt) { segs.push({ chord: pending, text: txt }); pending = null; }
+    pending = m[1];
+    li = re.lastIndex;
+  }
+  const rem = line.slice(li);
+  if (pending !== null || rem) segs.push({ chord: pending, text: rem });
+  return segs;
+}
+
+function parse(text) {
+  const song = { title:'', artist:'', key:'', capo:'', defines:{}, sections:[] };
+  let sec = null, inTab = false;
+  function push(l) {
+    if (!sec) { sec = { type:'verse', label:'', lines:[] }; song.sections.push(sec); }
+    sec.lines.push(l);
+  }
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    if (!line) { if (sec) push({ type:'sp' }); continue; }
+    const dm = line.match(/^\{([^:}]+)(?::([^}]*))?\}$/);
+    if (dm) {
+      const k = dm[1].trim().toLowerCase(), v = (dm[2]||'').trim();
+      if (k==='title'||k==='t') song.title = v;
+      else if (k==='artist'||k==='a'||k==='subtitle'||k==='st') song.artist = song.artist||v;
+      else if (k==='key') song.key = v;
+      else if (k==='capo') song.capo = v;
+      else if (k==='define') { const d=parseDefine(v); song.defines[d.name]=d; }
+      else if (k==='start_of_verse'||k==='sov') { sec={type:'verse',label:v||'Verso',lines:[]}; song.sections.push(sec); }
+      else if (k==='end_of_verse'||k==='eov') sec=null;
+      else if (k==='start_of_chorus'||k==='soc') { sec={type:'chorus',label:v||'Refrão',lines:[]}; song.sections.push(sec); }
+      else if (k==='end_of_chorus'||k==='eoc') sec=null;
+      else if (k==='start_of_bridge'||k==='sob') { sec={type:'bridge',label:v||'Bridge',lines:[]}; song.sections.push(sec); }
+      else if (k==='end_of_bridge'||k==='eob') sec=null;
+      else if (k==='start_of_tab'||k==='sot') { sec={type:'tab',label:v||'Tab',lines:[]}; song.sections.push(sec); inTab=true; }
+      else if (k==='end_of_tab'||k==='eot') { sec=null; inTab=false; }
+      else if (k==='comment'||k==='c'||k==='ci') push({type:'comment',text:v});
+      continue;
+    }
+    if (inTab) { push({type:'tab',text:raw}); continue; }
+    push({type:'lyric',segs:parseLine(line)});
+  }
+  return song;
+}
+
+function diagram(chord) {
+  const {name, baseFret, frets, fingers} = chord;
+  const S=6, F=5, ss=14, fs=14, px=10, pt=19, pb=4;
+  const W=(S-1)*ss+px*2+13, H=F*fs+pt+pb;
+  const e=[];
+  e.push(`<text x="${(W-13)/2}" y="12" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" font-weight="600" fill="currentColor">${xe(name)}</text>`);
+  for (let f=0;f<=F;f++) {
+    const y=pt+f*fs;
+    if (f===0&&baseFret===1) e.push(`<rect x="${px}" y="${y-2}" width="${(S-1)*ss}" height="3" rx="1" fill="currentColor"/>`);
+    else e.push(`<line x1="${px}" y1="${y}" x2="${px+(S-1)*ss}" y2="${y}" stroke="currentColor" stroke-width="0.7" opacity="0.2"/>`);
+  }
+  for (let s=0;s<S;s++) {
+    const cx=px+s*ss;
+    e.push(`<line x1="${cx}" y1="${pt}" x2="${cx}" y2="${pt+F*fs}" stroke="currentColor" stroke-width="0.7" opacity="0.35"/>`);
+  }
+  for (let s=0;s<S;s++) {
+    const cx=px+s*ss, fv=frets[s];
+    if (fv===-1) e.push(`<text x="${cx}" y="${pt-3}" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.4">×</text>`);
+    else if (fv===0) e.push(`<circle cx="${cx}" cy="${pt-7}" r="3" fill="none" stroke="currentColor" stroke-width="1" opacity="0.4"/>`);
+    else {
+      const rel=fv-baseFret+1;
+      if (rel>=1&&rel<=F) {
+        const dy=pt+(rel-0.5)*fs;
+        e.push(`<circle cx="${cx}" cy="${dy}" r="4.5" fill="currentColor"/>`);
+        const fg=fingers&&fingers[s];
+        if (fg>0) e.push(`<text x="${cx}" y="${dy+3}" text-anchor="middle" font-size="6.5" fill="white" font-weight="700">${fg}</text>`);
+      }
+    }
+  }
+  if (baseFret>1) e.push(`<text x="${px+(S-1)*ss+7}" y="${pt+fs*0.75}" font-size="8" fill="currentColor" opacity="0.45" font-family="ui-monospace,monospace">${baseFret}fr</text>`);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${e.join('')}</svg>`;
+}
+
+function xe(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function render(song) {
+  const v = document.getElementById('view');
+  if (!song.title && !song.artist && !song.sections.length) {
+    v.innerHTML = `<div class="empty"><strong>Nenhuma cifra carregada.</strong><br>Passe o ChordPro como parâmetro <code>?s=</code> na URL,<br>ou clique em Editar acima para gerar uma URL de embed.</div>`;
+    return;
+  }
+  let h = '<div class="song">';
+  if (song.title) h += `<div class="song-title">${xe(song.title)}</div>`;
+  if (song.artist) h += `<div class="song-artist">${xe(song.artist)}</div>`;
+  const meta=[];
+  if (song.key) meta.push(xe(song.key));
+  if (song.capo) meta.push(`Capo ${xe(song.capo)}`);
+  if (meta.length) h += `<div class="song-meta">${meta.map(m=>`<span>${m}</span>`).join(' · ')}</div>`;
+
+  const defs=Object.values(song.defines);
+  if (defs.length) {
+    h += `<div class="diagrams">`;
+    for (const d of defs) h += `<div class="di">${diagram(d)}</div>`;
+    h += `</div>`;
+  }
+
+  for (const sec of song.sections) {
+    h += `<div class="section">`;
+    if (sec.label) h += `<div class="sec-label ${sec.type}">${xe(sec.label)}</div>`;
+    if (sec.type==='tab') {
+      h += `<div class="tab">`;
+      for (const l of sec.lines) h += xe(l.text||'')+'\n';
+      h += `</div>`;
+    } else {
+      for (const l of sec.lines) {
+        if (l.type==='sp') { h+=`<div class="sp"></div>`; continue; }
+        if (l.type==='comment') { h+=`<div class="comment">${xe(l.text)}</div>`; continue; }
+        if (l.type==='lyric') {
+          const cc = sec.type==='chorus' ? ' cho' : sec.type==='bridge' ? ' bri' : '';
+          h += `<div class="line">`;
+          for (const s of l.segs)
+            h += `<span class="seg"><span class="seg-c${cc}">${s.chord?xe(s.chord):''}</span><span class="seg-l">${xe(s.text)||(s.chord?'\u00a0\u00a0':'')}</span></span>`;
+          h += `</div>`;
+        }
+      }
+    }
+    h += `</div>`;
+  }
+  h += '</div>';
+  v.innerHTML = h;
+}
+
+let current = '';
+
+function onInput() {
+  current = document.getElementById('ta').value;
+  render(parse(current));
+}
+
+function toggleEditor() {
+  const ed = document.getElementById('editor');
+  const btn = document.getElementById('edbtn');
+  const open = ed.classList.toggle('open');
+  btn.textContent = open ? 'Fechar' : 'Editar';
+}
+
+function flash(msg) {
+  const el = document.getElementById('fb');
+  el.textContent = msg;
+  el.classList.add('on');
+  setTimeout(()=>el.classList.remove('on'), 2000);
+}
+
+function copyRaw() {
+  navigator.clipboard.writeText(current).then(()=>flash('ChordPro copiado'));
+}
+
+function copyURL() {
+  const url = location.origin + location.pathname + '?s=' + encodeURIComponent(current);
+  navigator.clipboard.writeText(url).then(()=>flash('URL copiada'));
+}
+
+const p = new URLSearchParams(location.search).get('s') || new URLSearchParams(location.search).get('song') || '';
+if (p) {
+  current = p;
+  document.getElementById('ta').value = current;
+  render(parse(current));
+} else {
+  render({title:'',artist:'',key:'',capo:'',defines:{},sections:[]});
+}
+</script>
+</body>
+</html>
